@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CMSIS-NN 代码可视化</title>
+    <title>CMSIS-NN: Arm's Neural Network Inference Library</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -14,1024 +15,1237 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            min-height: 100vh;
             color: #fff;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
         }
 
-        .presentation {
+        .slide-container {
+            position: relative;
             width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
+            height: 100%;
+            overflow: hidden;
         }
 
         .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 40px 80px;
             display: none;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 20px;
-            padding: 40px;
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            min-height: 600px;
-            animation: fadeIn 0.5s ease-in-out;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
         }
 
         .slide.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            display: flex;
+            flex-direction: column;
+            opacity: 1;
         }
 
         h1 {
-            font-size: 2.5em;
+            font-size: 3.5em;
             margin-bottom: 20px;
             background: linear-gradient(90deg, #00d4ff, #00ff88);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-align: center;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
         }
 
         h2 {
-            font-size: 1.8em;
-            margin-bottom: 15px;
+            font-size: 2em;
+            margin-bottom: 25px;
             color: #00d4ff;
-            border-bottom: 2px solid #00d4ff;
+            border-bottom: 2px solid #00ff88;
             padding-bottom: 10px;
         }
 
         h3 {
-            font-size: 1.4em;
-            margin: 15px 0;
+            font-size: 1.5em;
+            margin: 20px 0 10px;
             color: #00ff88;
         }
 
-        p {
+        h4 {
+            font-size: 1.2em;
+            margin: 15px 0 8px;
+            color: #ffaa00;
+        }
+
+        p, li {
             font-size: 1.1em;
             line-height: 1.6;
-            margin-bottom: 15px;
-            color: #e0e0e0;
+            margin-bottom: 12px;
+        }
+
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .highlight-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 4px solid #00ff88;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+            backdrop-filter: blur(5px);
         }
 
         .code-block {
-            background: #0d1117;
-            border-radius: 10px;
-            padding: 20px;
             margin: 15px 0;
-            overflow-x: auto;
-            border-left: 4px solid #00d4ff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            background: #2d2d2d;
         }
 
         .code-block pre {
-            font-family: 'Consolas', 'Monaco', monospace;
+            margin: 0;
+            padding: 20px;
             font-size: 0.9em;
             line-height: 1.5;
-            color: #c9d1d9;
+            overflow-x: auto;
         }
 
-        .code-block .keyword { color: #ff79c6; }
-        .code-block .function { color: #50fa7b; }
-        .code-block .string { color: #f1fa8c; }
-        .code-block .comment { color: #6272a4; }
-        .code-block .type { color: #8be9fd; }
-        .code-block .number { color: #bd93f9; }
+        pre code {
+            font-family: 'Fira Code', 'Consolas', monospace;
+        }
 
-        .architecture {
+        .two-column {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin: 20px 0;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
         }
 
-        .module {
-            background: linear-gradient(145deg, #2d2d44, #1a1a2e);
-            border-radius: 15px;
+        .three-column {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .column {
+            background: rgba(255, 255, 255, 0.03);
             padding: 20px;
-            border: 1px solid rgba(0, 212, 255, 0.3);
-            transition: transform 0.3s, box-shadow 0.3s;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
         }
 
-        .module:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
-        }
-
-        .module h4 {
-            color: #00ff88;
-            margin-bottom: 10px;
-            font-size: 1.2em;
-        }
-
-        .module ul {
-            list-style: none;
-            padding-left: 0;
-        }
-
-        .module li {
-            padding: 5px 0;
-            color: #b0b0b0;
-            font-size: 0.9em;
-        }
-
-        .module li::before {
-            content: "▸ ";
-            color: #00d4ff;
-        }
-
-        .flow-diagram {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            margin: 30px 0;
-        }
-
-        .flow-box {
-            background: linear-gradient(145deg, #00d4ff, #0099cc);
-            padding: 15px 25px;
-            border-radius: 10px;
-            font-weight: bold;
-            color: #000;
-            min-width: 150px;
-            text-align: center;
-        }
-
-        .flow-arrow {
-            font-size: 2em;
-            color: #00ff88;
-        }
-
-        .stats {
+        .feature-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 20px;
-            margin: 20px 0;
-        }
-
-        .stat-box {
-            background: linear-gradient(145deg, #00ff88, #00cc6a);
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            color: #000;
-        }
-
-        .stat-box .number {
-            font-size: 2.5em;
-            font-weight: bold;
-        }
-
-        .stat-box .label {
-            font-size: 0.9em;
-            margin-top: 10px;
-        }
-
-        .highlight {
-            background: rgba(0, 255, 136, 0.2);
-            padding: 2px 6px;
-            border-radius: 4px;
-            color: #00ff88;
-        }
-
-        .navigation {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 20px;
-            z-index: 100;
-        }
-
-        .nav-btn {
-            background: linear-gradient(145deg, #00d4ff, #0099cc);
-            border: none;
-            padding: 15px 30px;
-            border-radius: 30px;
-            color: #000;
-            font-size: 1em;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .nav-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
-        }
-
-        .nav-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .slide-counter {
-            position: fixed;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.5);
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 0.9em;
-        }
-
-        .feature-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 15px;
             margin: 20px 0;
         }
 
-        .feature {
-            background: rgba(0, 212, 255, 0.1);
+        .feature-item {
+            background: rgba(0, 255, 136, 0.1);
             padding: 15px;
-            border-radius: 10px;
-            border-left: 3px solid #00d4ff;
+            border-radius: 6px;
+            border: 1px solid rgba(0, 255, 136, 0.3);
         }
 
-        .feature strong {
+        .feature-item strong {
             color: #00ff88;
+            display: block;
+            margin-bottom: 5px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            overflow: hidden;
         }
 
         th {
             background: rgba(0, 212, 255, 0.2);
             color: #00d4ff;
-            font-weight: bold;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #00ff88;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         tr:hover {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .tag {
+            display: inline-block;
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            margin: 2px;
+            border: 1px solid rgba(0, 212, 255, 0.4);
+        }
+
+        .tag-mve { background: rgba(255, 170, 0, 0.2); color: #ffaa00; border-color: rgba(255, 170, 0, 0.4); }
+        .tag-dsp { background: rgba(255, 0, 255, 0.2); color: #ff00ff; border-color: rgba(255, 0, 255, 0.4); }
+        .tag-ref { background: rgba(0, 255, 136, 0.2); color: #00ff88; border-color: rgba(0, 255, 136, 0.4); }
+
+        .nav-controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            background: rgba(0, 212, 255, 0.2);
+            border: 1px solid #00d4ff;
+            color: #00d4ff;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+            backdrop-filter: blur(5px);
+        }
+
+        .nav-btn:hover {
+            background: rgba(0, 212, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .slide-counter {
+            position: fixed;
+            bottom: 35px;
+            right: 30px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 15px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            color: #00ff88;
+        }
+
+        .toc {
+            columns: 2;
+            column-gap: 40px;
+        }
+
+        .toc-item {
+            break-inside: avoid;
+            margin-bottom: 10px;
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .toc-item:hover {
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .toc-item.current {
+            background: rgba(0, 255, 136, 0.2);
+            border-left: 3px solid #00ff88;
+        }
+
+        .code-comment {
+            color: #6a9955;
+            font-style: italic;
+        }
+
+        .code-keyword {
+            color: #569cd6;
+        }
+
+        .code-type {
+            color: #4ec9b0;
+        }
+
+        .code-string {
+            color: #ce9178;
+        }
+
+        .code-number {
+            color: #b5cea8;
+        }
+
+        .code-function {
+            color: #dcdcaa;
+        }
+
+        .arch-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            margin-left: 10px;
+        }
+
+        .arch-mve {
+            background: linear-gradient(90deg, #ffaa00, #ff8800);
+            color: #000;
+        }
+
+        .arch-dsp {
+            background: linear-gradient(90deg, #ff00ff, #ff00cc);
+            color: #fff;
+        }
+
+        .arch-ref {
+            background: linear-gradient(90deg, #00ff88, #00cc66);
+            color: #000;
+        }
+
+        @media (max-width: 1200px) {
+            .slide { padding: 30px 50px; }
+            h1 { font-size: 2.5em; }
+            h2 { font-size: 1.8em; }
+        }
+
+        @media (max-width: 900px) {
+            .two-column, .three-column { grid-template-columns: 1fr; }
+        }
+
+        /* Print styles */
+        @media print {
+            .slide { page-break-after: always; display: block !important; position: relative; opacity: 1; }
+            .nav-controls, .slide-counter { display: none; }
         }
     </style>
 </head>
 <body>
-    <div class="presentation">
+    <div class="slide-container">
         <!-- Slide 1: Title -->
-        <div class="slide active" id="slide-1">
-            <h1>CMSIS-NN 代码可视化</h1>
-            <p style="text-align: center; font-size: 1.3em; margin: 40px 0;">
-                Arm Cortex-M 神经网络库
+        <div class="slide active" data-slide="1">
+            <h1 style="font-size: 3.5em; text-align: center; margin-top: 12%;">CMSIS-NN</h1>
+            <h2 style="text-align: center; color: #fff; border: none; margin-top: 30px;">Arm's Neural Network Inference Library</h2>
+            <p style="text-align: center; font-size: 1.4em; color: #aaa; margin-top: 40px;">
+                High-performance neural network kernels for Arm Cortex-M processors
             </p>
-            <div class="flow-diagram">
-                <div class="flow-box">输入张量</div>
-                <div class="flow-arrow">→</div>
-                <div class="flow-box">卷积层</div>
-                <div class="flow-arrow">→</div>
-                <div class="flow-box">激活函数</div>
-                <div class="flow-arrow">→</div>
-                <div class="flow-box">池化层</div>
-                <div class="flow-arrow">→</div>
-                <div class="flow-box">输出张量</div>
+            <div class="highlight-box" style="margin-top: 60px; text-align: center;">
+                <p style="margin: 0; font-size: 1.2em;">
+                    <strong>Bit-exact with TensorFlow Lite for Microcontrollers</strong><br>
+                    Optimized for int8, int16, and int4 quantization
+                </p>
             </div>
-            <p style="text-align: center; margin-top: 40px; color: #888;">
-                版本 4.0.0 | Arm Limited | Apache-2.0 许可证
-            </p>
-        </div>
-
-        <!-- Slide 2: Overview -->
-        <div class="slide" id="slide-2">
-            <h2>项目概览</h2>
-            <p>CMSIS-NN 是一个高效的神经网络库，专为 Arm Cortex-M 处理器优化，提供量化神经网络算子的实现。</p>
-
-            <div class="stats">
-                <div class="stat-box">
-                    <div class="number">14</div>
-                    <div class="label">功能模块</div>
+            <div class="feature-grid" style="margin-top: 50px;">
+                <div class="feature-item">
+                    <strong>Pure C</strong>
+                    Cortex-M0, M3 baseline
                 </div>
-                <div class="stat-box">
-                    <div class="number">100+</div>
-                    <div class="label">优化函数</div>
+                <div class="feature-item">
+                    <strong>DSP Extension</strong>
+                    Cortex-M4, M33 acceleration
                 </div>
-                <div class="stat-box">
-                    <div class="number">S8/S16</div>
-                    <div class="label">量化支持</div>
+                <div class="feature-item">
+                    <strong>MVE/Helium</strong>
+                    Cortex-M55, M85 maximum performance
                 </div>
-                <div class="stat-box">
-                    <div class="number">MVEI/DSP</div>
-                    <div class="label">硬件加速</div>
-                </div>
-            </div>
-
-            <h3>核心特性</h3>
-            <div class="feature-list">
-                <div class="feature">
-                    <strong>DSP 扩展支持：</strong>利用 Arm DSP 指令集加速计算
-                </div>
-                <div class="feature">
-                    <strong>MVEI 支持：</strong>利用 Arm M-Profile Vector Extension
-                </div>
-                <div class="feature">
-                    <strong>量化优化：</strong>支持 int8/int16/int4 量化
-                </div>
-                <div class="feature">
-                    <strong>内存优化：</strong>最小化内存占用和带宽
+                <div class="feature-item">
+                    <strong>Modular Design</strong>
+                    14 function categories, easy integration
                 </div>
             </div>
         </div>
 
-        <!-- Slide 3: Architecture -->
-        <div class="slide" id="slide-3">
-            <h2>模块架构</h2>
-            <p>CMSIS-NN 采用模块化设计，包含以下核心组件：</p>
-
-            <div class="architecture">
-                <div class="module">
-                    <h4>卷积函数</h4>
-                    <ul>
-                        <li>标准卷积 (S8/S16/S4)</li>
-                        <li>深度卷积</li>
-                        <li>转置卷积</li>
-                        <li>1x1 卷积优化</li>
+        <!-- Slide 2: Architecture -->
+        <div class="slide" data-slide="2">
+            <h2>Architecture Overview</h2>
+            <div class="two-column">
+                <div>
+                    <h3>Directory Structure</h3>
+                    <div class="code-block">
+                        <pre><code class="language-text" data-line="1-15">CMSIS-NN/
+├── Include/              # Public API headers
+│   ├── arm_nnfunctions.h    # Main layer functions
+│   ├── arm_nn_types.h       # Core data structures
+│   ├── arm_nn_tables.h      # Lookup tables
+│   ├── arm_nnsupportfunctions.h
+│   └── Internal/            # Compiler abstractions
+├── Source/               # Implementation by category
+│   ├── ActivationFunctions/
+│   ├── ConvolutionFunctions/
+│   ├── FullyConnectedFunctions/
+│   ├── PoolingFunctions/
+│   └── ... (14 total)
+├── Tests/                # Unit tests + test generation
+├── Examples/             # Integration examples
+├── Documentation/        # Doxygen sources
+└── CMakeLists.txt        # Build config</code></pre>
+                    </div>
+                </div>
+                <div>
+                    <h3>Key Design Principles</h3>
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <strong>Portability</strong>
+                            Single API, multiple backends (C/DSP/MVE)
+                        </div>
+                        <div class="feature-item">
+                            <strong>Memory Efficient</strong>
+                            Scratch buffer reuse, partial im2col
+                        </div>
+                        <div class="feature-item">
+                            <strong>Quantization-First</strong>
+                            Native int8/int16, no float
+                        </div>
+                        <div class="feature-item">
+                            <strong>Bit-Exact</strong>
+                            Matches TFLite Micro reference
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <h3 style="margin-top: 30px;">Architecture Layering</h3>
+            <div class="three-column">
+                <div class="column">
+                    <h4>High-Level Wrappers</h4>
+                    <ul style="font-size: 0.95em;">
+                        <li><code>arm_convolve_wrapper_s8()</code></li>
+                        <li><code>arm_depthwise_conv_wrapper_s8()</code></li>
+                        <li><code>arm_fully_connected_wrapper_s8()</code></li>
+                        <li>Auto-select best kernel based on CPU features</li>
                     </ul>
                 </div>
-                <div class="module">
-                    <h4>激活函数</h4>
-                    <ul>
-                        <li>ReLU / ReLU6</li>
-                        <li>Sigmoid</li>
-                        <li>Tanh</li>
-                        <li>神经网络激活</li>
+                <div class="column">
+                    <h4>Optimized Kernels</h4>
+                    <ul style="font-size: 0.95em;">
+                        <li>Hand-tuned assembly & intrinsics</li>
+                        <li>MVE (Helium) implementations</li>
+                        <li>DSP (SIMD) implementations</li>
+                        <li>Reference C fallbacks</li>
                     </ul>
                 </div>
-                <div class="module">
-                    <h4>池化函数</h4>
-                    <ul>
-                        <li>平均池化</li>
-                        <li>最大池化</li>
-                        <li>S8/S16 支持</li>
-                        <li>自适应池化</li>
-                    </ul>
-                </div>
-                <div class="module">
-                    <h4>全连接层</h4>
-                    <ul>
-                        <li>密集连接</li>
-                        <li>批量矩阵乘</li>
-                        <li>向量求和</li>
-                        <li>包装器函数</li>
-                    </ul>
-                </div>
-                <div class="module">
-                    <h4>Softmax</h4>
-                    <ul>
-                        <li>S8/S16/U8</li>
-                        <li>指数近似</li>
-                        <li>MVEI 优化</li>
-                        <li>数值稳定性</li>
-                    </ul>
-                </div>
-                <div class="module">
-                    <h4>LSTM</h4>
-                    <ul>
-                        <li>单向 LSTM</li>
-                        <li>S8/S16 支持</li>
-                        <li>门计算</li>
-                        <li>时间步进</li>
-                    </ul>
-                </div>
-                <div class="module">
-                    <h4>基本数学</h4>
-                    <ul>
-                        <li>逐元素加法</li>
-                        <li>逐元素乘法</li>
-                        <li>最大/最小值</li>
-                        <li>批量运算</li>
-                    </ul>
-                </div>
-                <div class="module">
-                    <h4>支持函数</h4>
-                    <ul>
-                        <li>矩阵乘法核心</li>
-                        <li>向量矩阵乘</li>
-                        <li>深度卷积核心</li>
-                        <li>数据转换</li>
+                <div class="column">
+                    <h4>Support Functions</h4>
+                    <ul style="font-size: 0.95em;">
+                        <li>Low-level matrix ops</li>
+                        <li>Compiler abstractions</li>
+                        <li>Data conversion utilities</li>
+                        <li>Memory management helpers</li>
                     </ul>
                 </div>
             </div>
         </div>
 
-        <!-- Slide 4: Convolution -->
-        <div class="slide" id="slide-4">
-            <h2>卷积函数实现</h2>
-            <p>卷积是神经网络的核心操作，CMSIS-NN 提供多种优化实现：</p>
-
-            <div class="code-block">
-                <pre><span class="comment">/**</span>
-<span class="comment"> * S8 卷积函数 - 使用对称量化</span>
-<span class="comment"> * 优化：DSP/MVE 实现要求输入/输出通道为4的倍数</span>
-<span class="comment"> */</span>
-<span class="type">arm_cmsis_nn_status</span> <span class="function">arm_convolve_s8</span>(
-    <span class="keyword">const</span> <span class="type">cmsis_nn_context</span> *ctx,
-    <span class="keyword">const</span> <span class="type">cmsis_nn_conv_params</span> *conv_params,
-    <span class="keyword">const</span> <span class="type">cmsis_nn_per_channel_quant_params</span> *quant_params,
-    <span class="keyword">const</span> <span class="type">cmsis_nn_dims</span> *input_dims,
-    <span class="keyword">const</span> <span class="type">int8_t</span> *input_data,
-    <span class="keyword">const</span> <span class="type">cmsis_nn_dims</span> *filter_dims,
-    <span class="keyword">const</span> <span class="type">int8_t</span> *filter_data,
-    <span class="keyword">const</span> <span class="type">cmsis_nn_dims</span> *bias_dims,
-    <span class="keyword">const</span> <span class="type">int32_t</span> *bias_data,
-    <span class="keyword">const</span> <span class="type">cmsis_nn_dims</span> *upscale_dims,
-    <span class="keyword">const</span> <span class="type">cmsis_nn_dims</span> *output_dims,
-    <span class="type">int8_t</span> *output_data)</pre>
-            </div>
-
-            <h3>参数结构</h3>
+        <!-- Slide 3: Function Categories -->
+        <div class="slide" data-slide="3">
+            <h2>Function Categories</h2>
             <table>
-                <tr>
-                    <th>参数</th>
-                    <th>类型</th>
-                    <th>说明</th>
-                </tr>
-                <tr>
-                    <td>input_dims</td>
-                    <td>cmsis_nn_dims</td>
-                    <td>输入维度 (N, H, W, C)</td>
-                </tr>
-                <tr>
-                    <td>filter_dims</td>
-                    <td>cmsis_nn_dims</td>
-                    <td>卷积核维度 (H, W, C_in, C_out)</td>
-                </tr>
-                <tr>
-                    <td>conv_params</td>
-                    <td>cmsis_nn_conv_params</td>
-                    <td>卷积参数 (stride, padding, dilation)</td>
-                </tr>
-                <tr>
-                    <td>quant_params</td>
-                    <td>cmsis_nn_per_channel_quant_params</td>
-                    <td>量化参数 (multiplier, shift)</td>
-                </tr>
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Purpose</th>
+                        <th>Key Functions</th>
+                        <th>Tag</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Activation</strong></td>
+                        <td>ReLU, ReLU6, etc.</td>
+                        <td><code>arm_relu_q7</code></td>
+                        <td><span class="tag tag-ref">All</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Convolution</strong></td>
+                        <td>Standard & depthwise</td>
+                        <td><code>arm_convolve_s8</code></td>
+                        <td><span class="tag tag-mve">MVE</span><span class="tag tag-dsp">DSP</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>FullyConnected</strong></td>
+                        <td>Dense layers</td>
+                        <td><code>arm_fully_connected_s4</code></td>
+                        <td><span class="tag tag-mve">MVE</span><span class="tag tag-dsp">DSP</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Pooling</strong></td>
+                        <td>Max & average</td>
+                        <td><code>arm_avgpool_s16</code></td>
+                        <td><span class="tag tag-mve">MVE</span><span class="tag tag-dsp">DSP</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>LSTM</strong></td>
+                        <td>Recurrent cells</td>
+                        <td><code>arm_lstm_unidirectional_s8</code></td>
+                        <td><span class="tag tag-ref">C</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Softmax</strong></td>
+                        <td>With scaling</td>
+                        <td><code>arm_softmax_s8</code></td>
+                        <td><span class="tag tag-ref">All</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>BasicMath</strong></td>
+                        <td>Element-wise ops</td>
+                        <td><code>arm_elementwise_add_s8</code></td>
+                        <td><span class="tag tag-ref">All</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Support</strong></td>
+                        <td>Low-level matrix ops</td>
+                        <td><code>arm_nn_vec_mat_mult_t_s8</code></td>
+                        <td><span class="tag tag-mve">MVE</span><span class="tag tag-dsp">DSP</span></td>
+                    </tr>
+                </tbody>
             </table>
-        </div>
-
-        <!-- Slide 5: Depthwise Convolution -->
-        <div class="slide" id="slide-5">
-            <h2>深度卷积实现</h2>
-            <p>深度卷积对每个输入通道独立进行卷积，常用于 MobileNet 等轻量级网络：</p>
-
-            <div class="code-block">
-                <pre><span class="keyword">static void</span> <span class="function">depthwise_conv_s8_mult_4</span>(
-    <span class="keyword">const</span> <span class="type">int8_t</span> *input,
-    <span class="keyword">const</span> <span class="type">int32_t</span> input_x,
-    <span class="keyword">const</span> <span class="type">int32_t</span> input_y,
-    <span class="keyword">const</span> <span class="type">int32_t</span> input_ch,
-    <span class="keyword">const</span> <span class="type">int8_t</span> *kernel,
-    <span class="keyword">const</span> <span class="type">int32_t</span> output_ch,
-    <span class="keyword">const</span> <span class="type">int32_t</span> ch_mult,
-    <span class="keyword">const</span> <span class="type">int32_t</span> kernel_x,
-    <span class="keyword">const</span> <span class="type">int32_t</span> kernel_y,
-    <span class="keyword">const</span> <span class="type">int32_t</span> pad_x,
-    <span class="keyword">const</span> <span class="type">int32_t</span> pad_y,
-    <span class="keyword">const</span> <span class="type">int32_t</span> stride_x,
-    <span class="keyword">const</span> <span class="type">int32_t</span> stride_y,
-    <span class="keyword">const</span> <span class="type">int32_t</span> *bias,
-    <span class="type">int8_t</span> *output,
-    <span class="keyword">const</span> <span class="type">int32_t</span> *output_shift,
-    <span class="keyword">const</span> <span class="type">int32_t</span> *output_mult,
-    <span class="keyword">const</span> <span class="type">int32_t</span> output_x,
-    <span class="keyword">const</span> <span class="type">int32_t</span> output_y,
-    <span class="keyword">const</span> <span class="type">int32_t</span> output_offset,
-    <span class="keyword">const</span> <span class="type">int32_t</span> input_offset,
-    <span class="keyword">const</span> <span class="type">int32_t</span> output_activation_min,
-    <span class="keyword">const</span> <span class="type">int32_t</span> output_activation_max)</pre>
-            </div>
-
-            <h3>算法流程</h3>
-            <div class="flow-diagram">
-                <div class="flow-box">输入特征图</div>
-                <div class="flow-arrow">→</div>
-                <div class="flow-box">通道分组</div>
-                <div class="flow-arrow">→</div>
-                <div class="flow-box">逐通道卷积</div>
-                <div class="flow-arrow">→</div>
-                <div class="flow-box">通道乘数</div>
-                <div class="flow-arrow">→</div>
-                <div class="flow-box">输出特征图</div>
+            <div class="highlight-box">
+                <p style="margin: 0; font-size: 0.95em;">
+                    <strong>Total:</strong> 14 categories covering all standard neural network operations.
+                    Each category contains multiple quantization variants (int8, int16, int4 + int8).
+                </p>
             </div>
         </div>
 
-        <!-- Slide 6: Activation Functions -->
-        <div class="slide" id="slide-6">
-            <h2>激活函数实现</h2>
-            <p>激活函数为神经网络引入非线性，CMSIS-NN 提供高效的定点实现：</p>
-
+        <!-- Slide 4: Data Structures -->
+        <div class="slide" data-slide="4">
+            <h2>Core Data Structures</h2>
+            <h3>Tensor Dimensions: <code>cmsis_nn_dims</code></h3>
             <div class="code-block">
-                <pre><span class="comment">/*</span>
-<span class="comment"> * Q7 ReLU 函数</span>
-<span class="comment"> * 使用 DSP 扩展加速处理</span>
-<span class="comment"> */</span>
-<span class="keyword">void</span> <span class="function">arm_relu_q7</span>(<span class="type">int8_t</span> *data, <span class="type">uint16_t</span> size)
+                <pre><code class="language-c">typedef struct {
+    int32_t n;  // batch size / output channels
+    int32_t h;  // height
+    int32_t w;  // width
+    int32_t c;  // channels
+} cmsis_nn_dims;
+// Memory layout: [N, H, W, C] (NHWC)</code></pre>
+            </div>
+            <h3>Context Buffer: <code>cmsis_nn_context</code></h3>
+            <div class="code-block">
+                <pre><code class="language-c">typedef struct {
+    void *buf;    // scratch buffer pointer
+    int32_t size; // buffer size in bytes
+} cmsis_nn_context;
+
+// Usage pattern:
+void my_inference() {
+    cmsis_nn_context ctx;
+    int32_t buf_size = arm_func_get_buffer_size(&in, &filt);
+    ctx.buf = malloc(buf_size);
+    ctx.size = 0;
+
+    arm_func(&ctx, ...);
+
+    // IMPORTANT: Clear buffer for security
+    memset(ctx.buf, 0, buf_size);
+    free(ctx.buf);
+}</code></pre>
+            </div>
+            <div class="two-column">
+                <div>
+                    <h3>Convolution Params</h3>
+                    <div class="code-block">
+                        <pre><code class="language-c">typedef struct {
+    int32_t input_offset;
+    int32_t output_offset;
+    cmsis_nn_tile stride;
+    cmsis_nn_tile padding;
+    cmsis_nn_tile dilation;
+    cmsis_nn_activation activation;
+} cmsis_nn_conv_params;</code></pre>
+                    </div>
+                </div>
+                <div>
+                    <h3>Quantization Params</h3>
+                    <div class="code-block">
+                        <pre><code class="language-c">typedef struct {
+    int32_t *multiplier;  // array[output_depth]
+    int32_t *shift;       // array[output_depth]
+} cmsis_nn_per_channel_quant_params;
+
+// Constants per channel for fine-grained calibration</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Simple Activation Example -->
+        <div class="slide" data-slide="5">
+            <h2>Activation Function: ReLU</h2>
+            <h3>File: <code>ActivationFunctions/arm_relu_q7.c</code></h3>
+            <div class="code-block">
+                <pre><code class="language-c" data-line="1-40">void arm_relu_q7(int8_t *data, uint16_t size)
 {
-<span class="keyword">#if defined</span>(ARM_MATH_DSP) && !defined(ARM_MATH_MVEI)
-    <span class="comment">/* M 核心 DSP 扩展代码 */</span>
-    <span class="type">uint16_t</span> i = size >> <span class="number">2</span>;
-    <span class="type">int8_t</span> *input = data;
-    <span class="type">int8_t</span> *output = data;
-    <span class="type">int32_t</span> in, buf, mask;
+#if defined(ARM_MATH_DSP) && !defined(ARM_MATH_MVEI)
+    /* DSP extension optimization: process 4 elements at once */
+    uint16_t i = size >> 2;
+    int8_t *input = data;
+    int32_t in, buf, mask;
+    int8_t *output = data;  // in-place
 
-    <span class="keyword">while</span> (i)
+    while (i)
     {
-        in = <span class="function">arm_nn_read_s8x4_ia</span>((<span class="keyword">const</span> <span class="type">int8_t</span> **)&input);
-        <span class="comment">/* 提取最高位 */</span>
-        buf = (<span class="type">int32_t</span>)<span class="function">ROR</span>((<span class="type">uint32_t</span>)in & <span class="number">0x80808080</span>, <span class="number">7</span>);
-        <span class="comment">/* 如果 MSB=1, mask 为 0xFF */</span>
-        mask = <span class="function">QSUB8</span>(<span class="number">0x00000000</span>, buf);
-        <span class="function">arm_nn_write_s8x4_ia</span>(&output, in & (~mask));
+        /* Read 4 signed bytes */
+        in = arm_nn_read_s8x4_ia((const int8_t **)&input);
+
+        /* Extract sign bits and expand to all bytes */
+        buf = (int32_t)ROR((uint32_t)in & 0x80808080, 7);
+
+        /* Create mask: 0xFF if negative, 0x00 if positive */
+        mask = QSUB8(0x00000000, buf);
+        /* Apply mask: keep original if positive, zero if negative */
+        arm_nn_write_s8x4_ia(&output, in & (~mask));
         i--;
     }
-<span class="keyword">#else</span>
-    <span class="comment">/* 无 DSP 扩展的参考实现 */</span>
-    <span class="keyword">for</span> (<span class="type">uint16_t</span> i = <span class="number">0</span>; i < size; i++)
+    /* Handle remainder (0-3 elements) */
+    i = size & 0x3;
+    while (i)
     {
-        <span class="keyword">if</span> (data[i] < <span class="number">0</span>)
-            data[i] = <span class="number">0</span>;
+        if (*input < 0)
+            *output = 0;
+        else
+            *output = *input;
+        input++;
+        output++;
+        i--;
     }
-<span class="keyword">#endif</span>
-}</pre>
+#else
+    /* Pure C reference implementation */
+    for (uint16_t i = 0; i < size; i++)
+        if (data[i] < 0) data[i] = 0;
+#endif
+}</code></pre>
+            </div>
+            <div class="highlight-box">
+                <p><strong>Key Techniques:</strong></p>
+                <ul>
+                    <li><strong>SIMD parallelization:</strong> 4 elements at once using DSP intrinsics</li>
+                    <li><strong>Bit manipulation:</strong> Extract sign bit via AND mask, create zero-mask with QSUB8</li>
+                    <li><strong>Conditional compile:</strong> Auto-select optimal implementation</li>
+                    <li><strong>In-place operation:</strong> No extra buffer needed</li>
+                </ul>
             </div>
         </div>
 
-        <!-- Slide 7: Pooling Functions -->
-        <div class="slide" id="slide-7">
-            <h2>池化函数实现</h2>
-            <p>池化层用于降低特征图维度，减少计算量和参数数量：</p>
-
+        <!-- Slide 6: Convolution Complex Example -->
+        <div class="slide" data-slide="6">
+            <h2>Convolution: im2col + GEMM Pattern</h2>
+            <h3>File: <code>ConvolutionFunctions/arm_convolve_s8.c</code></h3>
             <div class="code-block">
-                <pre><span class="comment">/**</span>
-<span class="comment"> * S8 平均池化函数</span>
-<span class="comment"> * 支持 MVEI 和 DSP 两种实现</span>
-<span class="comment"> */</span>
-<span class="keyword">#if defined</span>(ARM_MATH_MVEI)
-<span class="type">arm_cmsis_nn_status</span> <span class="function">arm_avgpool_s8</span>(
-    <span class="keyword">const</span> <span class="type">cmsis_nn_context</span> *ctx,
-    <span class="keyword">const</span> <span class="type">cmsis_nn_pool_params</span> *pool_params,
-    <span class="keyword">const</span> <span class="type">cmsis_nn_dims</span> *input_dims,
-    <span class="keyword">const</span> <span class="type">int8_t</span> *src,
-    <span class="keyword">const</span> <span class="type">cmsis_nn_dims</span> *filter_dims,
-    <span class="keyword">const</span> <span class="type">cmsis_nn_dims</span> *output_dims,
-    <span class="type">int8_t</span> *dst)
-<span class="keyword">#endif</span>
-
-<span class="keyword">static void</span> <span class="function">scale_q31_to_q7_and_clamp</span>(
-    <span class="keyword">const</span> <span class="type">int32_t</span> *buffer,
-    <span class="type">int8_t</span> *target,
-    <span class="type">int32_t</span> length,
-    <span class="keyword">const</span> <span class="type">int32_t</span> count,
-    <span class="keyword">const</span> <span class="type">int</span> act_min,
-    <span class="keyword">const</span> <span class="type">int</span> act_max)
+                <pre><code class="language-c" data-line="1-100">arm_cmsis_nn_status arm_convolve_s8(
+    const cmsis_nn_context *ctx,
+    const cmsis_nn_conv_params *conv_params,
+    const cmsis_nn_per_channel_quant_params *quant_params,
+    const cmsis_nn_dims *input_dims,
+    const int8_t *input_data,
+    const cmsis_nn_dims *filter_dims,
+    const int8_t *filter_data,
+    const cmsis_nn_dims *bias_dims,
+    const int32_t *bias_data,
+    const cmsis_nn_dims *upscale_dims,  // for transposed conv
+    const cmsis_nn_dims *output_dims,
+    int8_t *output_data)
 {
-    <span class="keyword">const</span> <span class="type">int32_t</span> half_count = count / <span class="number">2</span>;
-    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i < length; i++)
+    int16_t *buffer_a = (int16_t *)ctx->buf;  // Accumulation buffer (int16)
+
+    /* Extract dimensions */
+    const uint16_t input_x  = input_dims->w;
+    const uint16_t input_y  = input_dims->h;
+    const uint16_t input_ch = input_dims->c;
+    const uint16_t kernel_x = filter_dims->w;
+    const uint16_t kernel_y = filter_dims->h;
+    const uint16_t kernel_ch = filter_dims->c;  // == input_ch
+    const uint16_t output_x  = output_dims->w;
+    const uint16_t output_y  = output_dims->h;
+    const uint16_t output_ch = output_dims->c;
+
+    /* Convection parameters */
+    const uint16_t pad_x = conv_params->padding.w;
+    const uint16_t pad_y = conv_params->padding.h;
+    const uint16_t stride_x = conv_params->stride.w;
+    const uint16_t stride_y = conv_params->stride.h;
+    const int32_t input_offset = conv_params->input_offset;
+    const int32_t out_offset = conv_params->output_offset;
+    const int32_t out_activation_min = conv_params->activation.min;
+    const int32_t out_activation_max = conv_params->activation.max;
+
+    /* Special case: Depthwise or Grouped */
+    const int32_t groups = input_ch / kernel_ch;
+    const int32_t output_ch_per_group = output_ch / groups;
+
+    /* Main loops: batch -> groups -> output positions */
+    for (int32_t i_batch = 0; i_batch < input_batches; i_batch++)
     {
-        <span class="type">int32_t</span> sum = buffer[i] > <span class="number">0</span> ? 
-            (buffer[i] + half_count) : (buffer[i] - half_count);
-        sum = sum / count;
-        sum = <span class="function">MAX</span>(sum, act_min);
-        sum = <span class="function">MIN</span>(sum, act_max);
-        target[i] = (<span class="type">int8_t</span>)sum;
-    }
-}</pre>
+        int32_t lhs_rows = 0;  // rows accumulated before GEMM call
+        int8_t *im2col_buf;
+
+        for (int32_t i_group = 0; i_group < groups; i_group++)
+        {
+            int8_t *out_ptr = output_data + i_group * output_ch_per_group;
+            for (int32_t i_out_y = 0; i_out_y < output_y; i_out_y++)
+            {
+                for (int32_t i_out_x = 0; i_out_x < output_x; i_out_x++)
+                {
+                    /* Build im2col buffer: extract input patch */
+                    im2col_buf = im2col_direct(input_data, ...);
+                    lhs_rows++;
+                    
+#if defined(ARM_MATH_MVEI)
+                    /* Helium: Process 4 rows at once */
+                    if (lhs_rows == 4)
+                    {
+                        arm_nn_mat_mult_nt_t_s8(
+                            buffer_a, filter_data_ptr, bias_data_ptr,
+                            out_ptr, output_mult_ptr, output_shift_ptr,
+                            lhs_rows, output_ch_per_group, rhs_cols,
+                            input_offset, out_offset,
+                            out_activation_min, out_activation_max,
+                            output_ch, aligned_rhs_cols);
+                        out_ptr += lhs_rows * output_ch;
+                        lhs_rows = 0;
+                    }
+#elif defined(ARM_MATH_DSP)
+                    /* DSP: Process 2 rows at once */
+                    if (lhs_rows == 2)
+                    {
+                        out_ptr = arm_nn_mat_mult_kernel_s8_s16(...);
+                        lhs_rows = 0;
+                    }
+#endif
+                }  // x
+            }  // y
+            /* Process leftover rows */
+        }  // groups
+    }  // batch
+    return ARM_CMSIS_NN_SUCCESS;
+}</code></pre>
+            </div>
+            <div class="two-column" style="margin-top: 15px;">
+                <div>
+                    <h4>Algorithm Strategy</h4>
+                    <ul>
+                        <li><strong>im2col conversion:</strong> Extract input patches on-the-fly</li>
+                        <li><strong>Matrix multiplication:</strong> GEMM with accumulated rows</li>
+                        <li><strong>Partial accumulation:</strong> batch GEMM calls for MVE/DSP</li>
+                        <li><strong>Quantization:</strong> Per-channel requantization after sum</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Optimization Levels</h4>
+                    <ul>
+                        <li><strong>MVE (Helium):</strong> 4 rows × 128-bit vectors = 64 int8 multiplies/cycle</li>
+                        <li><strong>DSP:</strong> 2 rows × 32-bit SIMD = 8 int8 multiplies/cycle</li>
+                        <li><strong>Reference:</strong> Scalar accumulation</li>
+                    </ul>
+                </div>
             </div>
         </div>
 
-        <!-- Slide 8: Softmax -->
-        <div class="slide" id="slide-8">
-            <h2>Softmax 实现</h2>
-            <p>Softmax 将 logits 转换为概率分布，使用数值稳定的近似算法：</p>
-
+        <!-- Slide 7: Fully Connected Example -->
+        <div class="slide" data-slide="7">
+            <h2>Fully Connected Layer</h2>
+            <h3>File: <code>FullyConnectedFunctions/arm_fully_connected_s8.c</code></h3>
             <div class="code-block">
-                <pre><span class="comment">/**</span>
-<span class="comment"> * S8 Softmax 函数</span>
-<span class="comment"> * 使用 MVEI 向量指令加速指数计算</span>
-<span class="comment"> */</span>
-<span class="keyword">#if defined</span>(ARM_MATH_MVEI) && !defined(ARM_GCC_12_2_ICE)
-<span class="keyword">static</span> <span class="type">int32x4_t</span> <span class="function">arm_exp_on_negative_values_mve_32x4</span>(
-    <span class="type">int32x4_t</span> val)
+                <pre><code class="language-c" data-line="1-80">arm_cmsis_nn_status arm_fully_connected_s8(
+    const cmsis_nn_context *ctx,
+    const cmsis_nn_fc_params *fc_params,
+    const cmsis_nn_per_tensor_quant_params *quant_params,
+    const cmsis_nn_dims *input_dims,
+    const int8_t *input,
+    const cmsis_nn_dims *filter_dims,
+    const int8_t *kernel,
+    const cmsis_nn_dims *bias_dims,
+    const int32_t *bias,
+    const cmsis_nn_dims *output_dims,
+    int8_t *output)
 {
-    <span class="keyword">#define</span> SHIFT_START (<span class="number">24</span>)
-    <span class="type">int32_t</span> shift = SHIFT_START;
-    <span class="type">int32x4_t</span> mask;
+    int32_t batch_cnt = input_dims->n;
+    const int32_t input_depth = filter_dims->n;
+    const int32_t output_depth = filter_dims->c;
 
-    <span class="keyword">const</span> <span class="type">int32x4_t</span> val_mod_minus_quarter =
-        <span class="function">vandq_s32</span>(val, <span class="function">vdupq_n_s32</span>((<span class="number">1</span> << SHIFT_START) - <span class="number">1</span>)) - 
-        <span class="function">vdupq_n_s32</span>(<span class="number">1</span> << SHIFT_START);
-    <span class="keyword">const</span> <span class="type">int32x4_t</span> remainder = <span class="function">vsubq_s32</span>(val_mod_minus_quarter, val);
-    <span class="keyword">const</span> <span class="type">int32x4_t</span> x = <span class="function">vaddq_n_s32</span>(val_mod_minus_quarter << <span class="number">5</span>, <span class="number">1</span> << <span class="number">28</span>);
-    <span class="keyword">const</span> <span class="type">int32x4_t</span> x2 = <span class="function">MUL_SAT_MVE</span>(x, x);
-    <span class="comment">// 泰勒级数近似 exp(x)</span>
-    <span class="keyword">const</span> <span class="type">int32x4_t</span> op_1 = <span class="function">DIV_POW2_MVE</span>(<span class="function">MUL_SAT_MVE</span>(x2, x2), <span class="number">2</span>) + 
-        <span class="function">MUL_SAT_MVE</span>(x2, x);
-    <span class="type">int32x4_t</span> result = <span class="function">vdupq_n_s32</span>(<span class="number">1895147668</span>) + 
-        <span class="function">MUL_SAT_MVE</span>(<span class="function">vdupq_n_s32</span>(<span class="number">1895147668</span>), op_2);
-    <span class="keyword">return</span> result;
+    /* Precompute kernel sums for requantization */
+    const int32_t *kernel_sum = (const int32_t *)ctx->buf;
+    arm_nn_mat_mult_nt_t_s8_gen_kernel_sum(
+        kernel, kernel_sum,
+        output_depth, input_depth,
+        fc_params->filter_offset);
+
+    while (batch_cnt)
+    {
+        arm_nn_vec_mat_mult_t_s8(
+            input,           // (1 × C_in)
+            kernel,          // (C_in × C_out)
+            kernel_sum,      // [C_out] precomputed sums
+            bias,            // [C_out] or NULL
+            output,          // (1 × C_out)
+            fc_params->input_offset,
+            fc_params->output_offset,
+            quant_params->multiplier,
+            quant_params->shift,
+            input_depth,
+            output_depth,
+            fc_params->activation.min,
+            fc_params->activation.max,
+            1,                                 // Process 1 row at a time
+            fc_params->filter_offset);        // Per-tensor filter offset
+
+        input += input_depth;
+        output += output_depth;
+        batch_cnt--;
+    }
+    return ARM_CMSIS_NN_SUCCESS;
+}</code></pre>
+            </div>
+            <div class="highlight-box">
+                <p><strong>Key Differences from Convolution:</strong></p>
+                <ul>
+                    <li><strong>No spatial dimensions:</strong> Fully connected is just vector-matrix multiply</li>
+                    <li><strong>Simpler loop structure:</strong> Only batch loop, no spatial loops</li>
+                    <li><strong>Kernel sum precomputation:</strong> Used for requantization optimization</li>
+                    <li><strong>Delegates to:</strong> <code>arm_nn_vec_mat_mult_t_s8</code> in SupportFunctions</li>
+                </ul>
+            </div>
+            <div class="code-block">
+                <pre><code class="language-c">/* Support function signature */
+void arm_nn_vec_mat_mult_t_s8(
+    const int8_t *lhs,           // [1, N]
+    const int8_t *rhs,           // [N, M]
+    const int32_t *lhs_sums,     // [N] - precomputed LHS sums
+    const int32_t *bias,         // [M] or NULL
+    int8_t *dst,                 // [1, M]
+    int32_t lhs_offset,
+    int32_t rhs_offset,
+    const int32_t *multiplier,   // [M] per-tensor or per-channel
+    const int32_t *shift,        // [M]
+    int32_t lhs_n, int32_t rhs_m,
+    int32_t activation_min, int32_t activation_max,
+    int32_t start, int32_t end);</code></pre>
+            </div>
+        </div>
+
+        <!-- Slide 8: Support Functions -->
+        <div class="slide" data-slide="8">
+            <h2>Low-Level Support Functions</h2>
+            <h3>File: <code>arm_nnsupportfunctions.h</code></h3>
+            <p>Provides architecture abstraction, inline math utilities, and core matrix multiplication kernels.</p>
+            <div class="code-block">
+                <pre><code class="language-c" data-line="1-100">/* Architecture detection */
+#if (defined(__ARM_FEATURE_DSP) && (__ARM_FEATURE_DSP == 1))
+    #define ARM_MATH_DSP 1
+#endif
+#if (defined(__ARM_FEATURE_MVE) && (__ARM_FEATURE_MVE & 1))
+    #define ARM_MATH_MVEI 1
+#endif
+
+/* Compiler-specific force inlining */
+#define __STATIC_INLINE static inline
+#define __STATIC_FORCEINLINE __attribute__((always_inline)) static inline
+
+/* Data packing macro */
+#define PACK_S8x4_32x1(v0,v1,v2,v3) \
+    ((((int32_t)(v0) << 0) & 0xFF) | \
+     (((int32_t)(v1) << 8) & 0xFF00) | \
+     (((int32_t)(v2) << 16) & 0xFF0000) | \
+     (((int32_t)(v3) << 24) & 0xFF000000))
+
+/* Read/write helpers for SIMD access */
+__STATIC_FORCEINLINE int32_t arm_nn_read_s8x4_ia(const int8_t **in)
+{
+    int32_t val = (int32_t)*((const int8_t *)*in);
+    *in += 4;
+    return val;
 }
-<span class="keyword">#endif</span></pre>
-            </div>
 
-            <h3>数值稳定性</h3>
-            <div class="feature-list">
-                <div class="feature">
-                    <strong>减去最大值：</strong>防止指数溢出
-                </div>
-                <div class="feature">
-                    <strong>查表优化：</strong>使用预计算的 exp 表
-                </div>
-                <div class="feature">
-                    <strong>定点运算：</strong>Q31/Q15 定点格式
-                </div>
+/* Check if fast path applicable */
+__STATIC_INLINE bool arm_nn_is_convolve_1x1(
+    const cmsis_nn_conv_params *conv_params,
+    const cmsis_nn_dims *input_dims,
+    const cmsis_nn_dims *filter_dims)
+{
+    return (conv_params->padding.w == 0) &&
+           (conv_params->padding.h == 0) &&
+           (filter_dims->w == 1) && (filter_dims->h == 1) &&
+           (conv_params->dilation.w == 1) && (conv_params->dilation.h == 1);
+}
+
+/* Core GEMM operations (note: these are in Source/NNSupportFunctions/) */
+void arm_nn_vec_mat_mult_t_s8(...);      // vector × matrix
+void arm_nn_mat_mult_nt_t_s8(...);       // matrix × matrix (N^T)
+void arm_nn_depthwise_conv_nt_t_s8(...); // depthwise conv (implicit GEMM)</code></pre>
+            </div>
+            <div class="highlight-box">
+                <p><strong>Key Utilities:</strong></p>
+                <ul>
+                    <li><strong>Macros for vectorization:</strong> Compiler abstracts SIMD lanes</li>
+                    <li><strong>Fast path checks:</strong> Enable specialized kernels for special cases (1×1 conv)</li>
+                    <li><strong>Buffer size calculators:</strong> Allow run-time allocation of scratch space</li>
+                    <li><strong>Read/write intrinsics:</strong> Unaligned-safe access patterns for DSP/MVE</li>
+                </ul>
             </div>
         </div>
 
-        <!-- Slide 9: LSTM -->
-        <div class="slide" id="slide-9">
-            <h2>LSTM 实现</h2>
-            <p>长短期记忆网络用于序列数据处理，支持单向 LSTM：</p>
-
+        <!-- Slide 9: API Patterns - Buffer Management -->
+        <div class="slide" data-slide="9">
+            <h2>API Pattern: Buffer Management</h2>
+            <p>Functions requiring scratch memory use a two-call pattern:</p>
             <div class="code-block">
-                <pre><span class="comment">/**</span>
-<span class="comment"> * 单向 LSTM 函数</span>
-<span class="comment"> * 支持 S8 和 S16 量化</span>
-<span class="comment"> */</span>
-<span class="type">arm_cmsis_nn_status</span> <span class="function">arm_lstm_unidirectional_s8</span>(
-    <span class="keyword">const</span> <span class="type">int8_t</span> *input,
-    <span class="keyword">const</span> <span class="type">cmsis_nn_lstm_params</span> *lstm_params,
-    <span class="keyword">const</span> <span class="type">cmsis_nn_dims</span> *input_dims,
-    <span class="keyword">const</span> <span class="type">int8_t</span> *kernel,
-    <span class="keyword">const</span> <span class="type">int8_t</span> *recurrent_kernel,
-    <span class="keyword">const</span> <span class="type">int32_t</span> *bias,
-    <span class="type">int8_t</span> *output)
+                <pre><code class="language-c">/* Step 1: Query buffer size */
+int32_t arm_convolve_s8_get_buffer_size(
+    const cmsis_nn_dims *input_dims,
+    const cmsis_nn_dims *filter_dims);
 
-<span class="comment">// LSTM 门计算</span>
-<span class="type">arm_cmsis_nn_status</span> <span class="function">arm_nn_lstm_calculate_gate_s8_s16</span>(
-    <span class="keyword">const</span> <span class="type">int8_t</span> *input,
-    <span class="keyword">const</span> <span class="type">int8_t</span> *recurrent,
-    <span class="keyword">const</span> <span class="type">int32_t</span> *bias,
-    <span class="type">int16_t</span> *output,
-    <span class="keyword">const</span> <span class="type">cmsis_nn_dims</span> *dims)</pre>
+/* Step 2: Allocate and pass context */
+cmsis_nn_context ctx;
+ctx.buf = malloc(buf_size);
+ctx.size = buf_size;  // or 0, kernel manages
+
+arm_cmsis_nn_status status = arm_convolve_s8(&ctx, ...);
+
+/* Step 3: Security cleanup - caller responsible */
+memset(ctx.buf, 0, buf_size);  // Clear sensitive data
+free(ctx.buf);</code></pre>
             </div>
-
-            <h3>LSTM 结构</h3>
-            <div class="flow-diagram">
-                <div class="flow-box">输入门</div>
-                <div class="flow-arrow">+</div>
-                <div class="flow-box">遗忘门</div>
-                <div class="flow-arrow">+</div>
-                <div class="flow-box">输出门</div>
-                <div class="flow-arrow">+</div>
-                <div class="flow-box">细胞状态</div>
-                <div class="flow-arrow">→</div>
-                <div class="flow-box">隐藏状态</div>
-            </div>
-        </div>
-
-        <!-- Slide 10: Support Functions -->
-        <div class="slide" id="slide-10">
-            <h2>支持函数</h2>
-            <p>NNSupportFunctions 提供底层优化的核心运算：</p>
-
-            <div class="architecture">
-                <div class="module">
-                    <h4>矩阵乘法</h4>
-                    <ul>
-                        <li>arm_nn_mat_mul_core_1x_s8</li>
-                        <li>arm_nn_mat_mul_core_4x_s8</li>
-                        <li>arm_nn_mat_mult_nt_t_s8</li>
-                        <li>S4/S8/S16 支持</li>
-                    </ul>
-                </div>
-                <div class="module">
-                    <h4>向量运算</h4>
-                    <ul>
-                        <li>arm_nn_vec_mat_mult_t_s8</li>
-                        <li>arm_nn_vec_mat_mul_result_acc</li>
-                        <li>arm_nn_vec_mat_mult_t_per_ch</li>
-                        <li>通道级量化</li>
-                    </ul>
-                </div>
-                <div class="module">
-                    <h4>深度卷积核心</h4>
-                    <ul>
-                        <li>arm_nn_depthwise_conv_nt_t</li>
-                        <li>arm_nn_depthwise_conv_nt_t_padded</li>
-                        <li>S4/S8/S16 支持</li>
-                        <li>填充优化</li>
-                    </ul>
-                </div>
-                <div class="module">
-                    <h4>数据转换</h4>
-                    <ul>
-                        <li>arm_q7_to_q15_with_offset</li>
-                        <li>arm_s8_to_s16_unordered</li>
-                        <li>arm_nntables</li>
-                        <li>查找表</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Slide 11: Quantization -->
-        <div class="slide" id="slide-11">
-            <h2>量化策略</h2>
-            <p>CMSIS-NN 支持多种量化格式，优化内存和计算效率：</p>
-
-            <table>
-                <tr>
-                    <th>量化类型</th>
-                    <th>位宽</th>
-                    <th>范围</th>
-                    <th>应用场景</th>
-                </tr>
-                <tr>
-                    <td>S4</td>
-                    <td>4-bit</td>
-                    <td>[-8, 7]</td>
-                    <td>极致压缩</td>
-                </tr>
-                <tr>
-                    <td>S8</td>
-                    <td>8-bit</td>
-                    <td>[-128, 127]</td>
-                    <td>主流部署</td>
-                </tr>
-                <tr>
-                    <td>S16</td>
-                    <td>16-bit</td>
-                    <td>[-32768, 32767]</td>
-                    <td>高精度需求</td>
-                </tr>
-                <tr>
-                    <td>U8</td>
-                    <td>8-bit</td>
-                    <td>[0, 255]</td>
-                    <td>无符号激活</td>
-                </tr>
-            </table>
-
-            <h3>量化参数</h3>
+            <h3 style="margin-top: 25px;">Buffer Size Estimation</h3>
             <div class="code-block">
-                <pre><span class="comment">// 每通道量化参数</span>
-<span class="keyword">typedef struct</span> {
-    <span class="keyword">const</span> <span class="type">int32_t</span> *multiplier;  <span class="comment">// 乘法因子</span>
-    <span class="keyword">const</span> <span class="type">int32_t</span> *shift;       <span class="comment">// 移位量</span>
-} <span class="type">cmsis_nn_per_channel_quant_params</span>;
+                <pre><code class="language-c">/* Example: Convolution buffer calculation */
+int32_t arm_convolve_s8_get_buffer_size(
+    const cmsis_nn_dims *input_dims,
+    const cmsis_nn_dims *filter_dims)
+{
+    int32_t im2col_size = 0;
 
-<span class="comment">// 量化公式: output = (input * multiplier) >> shift</span></pre>
+    /* Calculate temporary im2col buffer */
+    if (arm_nn_is_convolve_1x1(...))
+        im2col_size = input_dims->h * input_dims->w * filter_dims->c *
+                      sizeof(int8_t);  // Reuse buffer for original data
+    else
+        im2col_size = input_dims->n * input_dims->c * input_dims->h * input_dims->w *
+                      sizeof(int8_t);  // Full im2col
+
+    return im2col_size;
+}</code></pre>
+            </div>
+            <div class="highlight-box">
+                <p><strong>Security Considerations:</strong></p>
+                <ul>
+                    <li>Caller must clear buffer after use to prevent data leakage</li>
+                    <li>Buffer size is dynamic, caller can implement custom allocator (pool, stack, etc.)</li>
+                    <li>Some functions need no buffer (e.g., ReLU), pass <code>ctx.buf = NULL</code></li>
+                </ul>
             </div>
         </div>
 
-        <!-- Slide 12: Hardware Optimization -->
-        <div class="slide" id="slide-12">
-            <h2>硬件优化</h2>
-            <p>CMSIS-NN 针对 Arm Cortex-M 处理器进行深度优化：</p>
-
-            <div class="feature-list">
-                <div class="feature">
-                    <strong>DSP 扩展 (SIMD)：</strong>使用 SMLAD, SMUAD 等指令一次处理 2-4 个数据
+        <!-- Slide 10: Quantization Model -->
+        <div class="slide" data-slide="10">
+            <h2>Quantization Model</h2>
+            <p>CMSIS-NN uses affine quantization: <code>q = round(x / scale) + zero_point</code></p>
+            <div class="two-column">
+                <div>
+                    <h3>Per-Tensor Quantization</h3>
+                    <div class="code-block">
+                        <pre><code class="language-c">typedef struct {
+    int32_t multiplier;
+    int32_t shift;
+} cmsis_nn_per_tensor_quant_params;</code></pre>
+                    </div>
+                    <p>Single scale for entire tensor. Simple, less accurate.</p>
+                    <h4>Requantization Formula:</h4>
+                    <div class="code-block">
+                        <pre><code class="language-c">/* After dot product accumulation (int32 result) */
+int32_t requantized = ((acc * multiplier) >> shift) + output_offset;
+requantized = CLAMP(requantized, activation_min, activation_max);
+output[i] = (int8_t)requantized;</code></pre>
+                    </div>
                 </div>
-                <div class="feature">
-                    <strong>MVEI 扩展：</strong>M-Profile Vector Extension 提供 128-bit 向量运算
-                </div>
-                <div class="feature">
-                    <strong>循环展开：</strong>减少分支预测失败，提高指令级并行
-                </div>
-                <div class="feature">
-                    <strong>内存访问优化：</strong>使用 __SXTAB16, __UXTAB16 等指令
+                <div>
+                    <h3>Per-Channel Quantization</h3>
+                    <div class="code-block">
+                        <pre><code class="language-c">typedef struct {
+    int32_t *multiplier;  // array[output_depth]
+    int32_t *shift;       // array[output_depth]
+} cmsis_nn_per_channel_quant_params;</code></pre>
+                    </div>
+                    <p>Each output channel gets its own scale. More accurate, supports fine calibration.</p>
+                    <h4>Usage:</h4>
+                    <div class="code-block">
+                        <pre><code class="language-c">for (int c = 0; c < output_depth; c++) {
+    int32_t mult = multiplier[c];
+    int32_t shft = shift[c];
+    int32_t val = ((acc[c] * mult) >> shft) + output_offset;
+    output[c] = CLAMP(val, min, max);
+}</code></pre>
+                    </div>
                 </div>
             </div>
-
-            <div class="code-block">
-                <pre><span class="comment">// DSP 扩展优化示例</span>
-<span class="keyword">#if defined</span>(ARM_MATH_DSP) && !defined(ARM_MATH_MVEI)
-    <span class="type">uint16_t</span> i = size >> <span class="number">2</span>;  <span class="comment">// 每次处理 4 个元素</span>
-    <span class="keyword">while</span> (i)
-    {
-        in = <span class="function">arm_nn_read_s8x4_ia</span>((<span class="keyword">const</span> <span class="type">int8_t</span> **)&input);
-        <span class="comment">// 使用 DSP 指令并行处理</span>
-        buf = (<span class="type">int32_t</span>)<span class="function">ROR</span>((<span class="type">uint32_t</span>)in & <span class="number">0x80808080</span>, <span class="number">7</span>);
-        mask = <span class="function">QSUB8</span>(<span class="number">0x00000000</span>, buf);
-        <span class="function">arm_nn_write_s8x4_ia</span>(&output, in & (~mask));
-        i--;
-    }
-<span class="keyword">#endif</span></pre>
-            </div>
-        </div>
-
-        <!-- Slide 13: File Structure -->
-        <div class="slide" id="slide-13">
-            <h2>文件结构</h2>
-            <p>CMSIS-NN 的 Source 目录组织：</p>
-
-            <div class="architecture">
-                <div class="module">
-                    <h4>ConvolutionFunctions/</h4>
-                    <ul>
-                        <li>arm_convolve_s8.c</li>
-                        <li>arm_depthwise_conv_s8.c</li>
-                        <li>arm_transpose_conv_s8.c</li>
-                        <li>39 个文件</li>
-                    </ul>
-                </div>
-                <div class="module">
-                    <h4>ActivationFunctions/</h4>
-                    <ul>
-                        <li>arm_relu_q7.c</li>
-                        <li>arm_relu_q15.c</li>
-                        <li>arm_relu6_s8.c</li>
-                        <li>5 个文件</li>
-                    </ul>
-                </div>
-                <div class="module">
-                    <h4>PoolingFunctions/</h4>
-                    <ul>
-                        <li>arm_avgpool_s8.c</li>
-                        <li>arm_max_pool_s8.c</li>
-                        <li>S16 变体</li>
-                        <li>7 个文件</li>
-                    </ul>
-                </div>
-                <div class="module">
-                    <h4>FullyConnectedFunctions/</h4>
-                    <ul>
-                        <li>arm_fully_connected_s8.c</li>
-                        <li>arm_batch_matmul_s8.c</li>
-                        <li>arm_vector_sum_s8.c</li>
-                        <li>12 个文件</li>
-                    </ul>
-                </div>
-                <div class="module">
-                    <h4>SoftmaxFunctions/</h4>
-                    <ul>
-                        <li>arm_softmax_s8.c</li>
-                        <li>arm_softmax_s16.c</li>
-                        <li>arm_softmax_u8.c</li>
-                        <li>6 个文件</li>
-                    </ul>
-                </div>
-                <div class="module">
-                    <h4>NNSupportFunctions/</h4>
-                    <ul>
-                        <li>矩阵乘法核心</li>
-                        <li>向量矩阵乘</li>
-                        <li>数据转换</li>
-                        <li>29 个文件</li>
-                    </ul>
-                </div>
+            <div class="highlight-box" style="margin-top: 20px;">
+                <p><strong>Calculating Multiplier & Shift:</strong></p>
+                <p>Given scale = (input_scale × kernel_scale) / output_scale, compute:</p>
+                <ul>
+                    <li><code>real_multiplier = input_scale × kernel_scale / output_scale</code></li>
+                    <li><code>multiplier = round(real_multiplier × 2^31)</code></li>
+                    <li><code>shift = 31 - floor(log2(multiplier))</code> (shift right by 31-bits)</li>
+                </ul>
+                <p><em>Tooling:</em> TFLite Micro's <code>hybrid_quantization_logger.cc</code> computes these during conversion.</p>
             </div>
         </div>
 
-        <!-- Slide 14: Usage Example -->
-        <div class="slide" id="slide-14">
-            <h2>使用示例</h2>
-            <p>典型的卷积神经网络推理流程：</p>
+        <!-- Slide 11: Build & Test -->
+        <div class="slide" data-slide="11">
+            <h2>Build & Testing</h2>
+            <div class="two-column">
+                <div>
+                    <h3>Build Instructions</h3>
+                    <div class="code-block">
+                        <pre><code class="language-bash"># Clone CMSIS-NN (part of CMSIS)
+git clone https://github.com/ARM-software/CMSIS_5.git
+cd CMSIS_5/CMSIS/NN
 
-            <div class="code-block">
-                <pre><span class="comment">// 1. 定义网络参数</span>
-<span class="type">cmsis_nn_dims</span> input_dims = {<span class="number">1</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">1</span>};
-<span class="type">cmsis_nn_dims</span> filter_dims = {<span class="number">3</span>, <span class="number">3</span>, <span class="number">1</span>, <span class="number">16</span>};
-<span class="type">cmsis_nn_dims</span> output_dims = {<span class="number">1</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">16</span>};
+# Build with CMake
+mkdir build && cd build
+cmake .. \
+    -DCMAKE_TOOLCHAIN_FILE=path/to/arm-none-eabi-gcc.cmake \
+    -DTARGET_CPU=cortex-m33 \  # Options: m0, m3, m4, m33, m55, m85
+    -DCPU_ARCH=armv8-m.main
+make
+# Output: Core binaries in lib/</code></pre>
+                    </div>
+                    <h4>Common Compiler Flags:</h4>
+                    <div class="code-block">
+                        <pre><code class="language-text">-mthumb -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16
+-O3 -flto -DARM_MATH_DSP</code></pre>
+                    </div>
+                </div>
+                <div>
+                    <h3>Running Unit Tests</h3>
+                    <div class="code-block">
+                        <pre><code class="language-bash">cd Tests/UnitTest
+# Build with Unity test framework and OpenOCD
+mkdir build && cd build
+cmake .. -DCMAKE_TOOLCHAIN_FILE=...
+make
+make flash  # Deploy to board/flash
 
-<span class="comment">// 2. 配置卷积参数</span>
-<span class="type">cmsis_nn_conv_params</span> conv_params = {
-    .padding = {<span class="number">0</span>, <span class="number">0</span>},
-    .stride = {<span class="number">1</span>, <span class="number">1</span>},
-    .dilation = {<span class="number">1</span>, <span class="number">1</span>},
-    .input_offset = <span class="number">128</span>,
-    .output_offset = <span class="number">-128</span>,
-    .activation = {<span class="number">-128</span>, <span class="number">127</span>}
-};
-
-<span class="comment">// 3. 执行卷积</span>
-<span class="function">arm_convolve_s8</span>(
-    &ctx,
-    &conv_params,
-    &quant_params,
-    &input_dims,
-    input_data,
-    &filter_dims,
-    filter_data,
-    &bias_dims,
-    bias_data,
-    NULL,
-    &output_dims,
-    output_data
-);
-
-<span class="comment">// 4. 应用激活函数</span>
-<span class="function">arm_relu_q7</span>(output_data, output_size);
-
-<span class="comment">// 5. 池化</span>
-<span class="function">arm_max_pool_s8</span>(
-    &ctx,
-    &pool_params,
-    &output_dims,
-    output_data,
-    &filter_dims,
-    &pooled_dims,
-    pooled_data
-);</pre>
+# Or generate Python test vectors
+python3 test_data/generate_test_data.py \
+    --conv-params ...</code></pre>
+                    </div>
+                    <h4>Test Structure:</h4>
+                    <ul style="font-size: 0.95em;">
+                        <li>Tests use generated vectors as reference</li>
+                        <li>Validate against both reference C and TFLite Micro</li>
+                        <li>Automated CI runs on multiple CPU targets</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="highlight-box">
+                <p><strong>Integration with TFLite Micro:</strong></p>
+                <ul>
+                    <li>Include <code>CMSIS/NN/Include</code> in TFLite Micro Makefile</li>
+                    <li>Register kernels: <code>Register_CMSIS_NN()</code> micro/makefile</li>
+                    <li>TFLite Micro's op resolver automatically selects CMSIS-NN kernels</li>
+                </ul>
             </div>
         </div>
 
-        <!-- Slide 15: Summary -->
-        <div class="slide" id="slide-15">
-            <h2>总结</h2>
-
-            <div class="stats">
-                <div class="stat-box">
-                    <div class="number">14</div>
-                    <div class="label">功能模块</div>
+        <!-- Slide 12: Summary & Takeaways -->
+        <div class="slide" data-slide="12">
+            <h2>Key Takeaways</h2>
+            <div class="feature-grid" style="grid-template-columns: 1fr;">
+                <div class="feature-item">
+                    <strong>1. Layered Architecture</strong>
+                    High-level wrappers auto-select optimal kernel based on CPU capabilities (MVE > DSP > C), enabling single codebase for all Cortex-M devices.
                 </div>
-                <div class="stat-box">
-                    <div class="number">100+</div>
-                    <div class="label">优化函数</div>
+                <div class="feature-item">
+                    <strong>2. Quantization-First Design</strong>
+                    Native int8/int16 operations with per-tensor or per-channel scaling. Optimized for TFLite Micro's quantized models.
                 </div>
-                <div class="stat-box">
-                    <div class="number">4</div>
-                    <div class="label">量化格式</div>
+                <div class="feature-item">
+                    <strong>3. Memory Efficiency</strong>
+                    Scratch buffer management through context pattern; partial im2col strategy reduces memory footprint compared to naive GEMM.
                 </div>
-                <div class="stat-box">
-                    <div class="number">2</div>
-                    <div class="label">硬件加速</div>
+                <div class="feature-item">
+                    <strong>4. Performance Patterns</strong>
+                    MVE: 4-accumulator batching, DSP: 2-accumulator; im2col/GEMM approach with optimizations for 1×1 convs and depthwise convs.
                 </div>
-            </div>
-
-            <h3>关键优势</h3>
-            <div class="feature-list">
-                <div class="feature">
-                    <strong>高效性：</strong>针对 Cortex-M 深度优化，充分利用 DSP/MVEI 指令
+                <div class="feature-item">
+                    <strong>5. Portability</strong>
+                    Conditional compilation abstracts SIMD; reference C fallback ensures correctness on any ARM processor.
                 </div>
-                <div class="feature">
-                    <strong>灵活性：</strong>支持多种量化格式和网络结构
-                </div>
-                <div class="feature">
-                    <strong>易用性：</strong>统一的 API 接口，清晰的模块划分
-                </div>
-                <div class="feature">
-                    <strong>可移植性：</strong>纯 C 实现，跨平台兼容
+                <div class="feature-item">
+                    <strong>6. Security</strong>
+                    Caller-controlled scratch buffer with required zeroing after use; no static buffers, suitable for secure enclaves.
                 </div>
             </div>
+            <div class="highlight-box" style="margin-top: 30px;">
+                <p style="text-align: center; font-size: 1.1em;">
+                    <strong>Resources:</strong><br>
+                    📚 Docs: https://arm-software.github.io/CMSIS-NN<br>
+                    💻 GitHub: https://github.com/ARM-software/CMSIS_5/tree/develop/CMSIS/NN<br>
+                    🤝 TFLite Micro integration: <code>tensorflow/lite/micro/kernels/cmsis_nn</code>
+                </p>
+            </div>
+        </div>
 
-            <p style="text-align: center; margin-top: 40px; font-size: 1.2em; color: #00ff88;">
-                CMSIS-NN 是在 Arm Cortex-M 上部署神经网络的理想选择
+        <!-- Slide 13: Code Overview -->
+        <div class="slide" data-slide="13">
+            <h2>Code Overview</h2>
+            <div class="toc" id="toc">
+                <div class="toc-item" onclick="goToSlide(1)"><strong>1.</strong> Title & Introduction</div>
+                <div class="toc-item" onclick="goToSlide(2)"><strong>2.</strong> Architecture Overview</div>
+                <div class="toc-item" onclick="goToSlide(3)"><strong>3.</strong> Function Categories (Table)</div>
+                <div class="toc-item" onclick="goToSlide(4)"><strong>4.</strong> Core Data Structures</div>
+                <div class="toc-item" onclick="goToSlide(5)"><strong>5.</strong> Activation Example (Relu)</div>
+                <div class="toc-item" onclick="goToSlide(6)"><strong>6.</strong> Convolution (Complex)</div>
+                <div class="toc-item" onclick="goToSlide(7)"><strong>7.</strong> Fully Connected</div>
+                <div class="toc-item" onclick="goToSlide(8)"><strong>8.</strong> Low-Level Support Functions</div>
+                <div class="toc-item" onclick="goToSlide(9)"><strong>9.</strong> Buffer Management Pattern</div>
+                <div class="toc-item" onclick="goToSlide(10)"><strong>10.</strong> Quantization Model</div>
+                <div class="toc-item" onclick="goToSlide(11)"><strong>11.</strong> Build & Test</div>
+                <div class="toc-item" onclick="goToSlide(12)"><strong>12.</strong> Takeaways</div>
+            </div>
+            <p style="margin-top: 30px; text-align: center; color: #aaa;">
+                <strong>Navigation:</strong> Arrow keys / Space / Click buttons<br>
+                <strong>Code:</strong> Analysis of CMSIS-NN version from /media/code/llm/CMSIS-NN
             </p>
         </div>
     </div>
 
-    <div class="slide-counter">
-        <span id="current-slide">1</span> / <span id="total-slides">15</span>
+    <!-- Navigation -->
+    <div class="nav-controls">
+        <button class="nav-btn" id="prevBtn" onclick="prevSlide()">◀ Previous</button>
+        <button class="nav-btn" id="nextBtn" onclick="nextSlide()">Next ▶</button>
     </div>
+    <div class="slide-counter"><span id="currentSlide">1</span> / <span id="totalSlides">12</span></div>
 
-    <div class="navigation">
-        <button class="nav-btn" id="prev-btn" onclick="changeSlide(-1)">上一页</button>
-        <button class="nav-btn" id="next-btn" onclick="changeSlide(1)">下一页</button>
-    </div>
-
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
     <script>
+        // Slide Management
         let currentSlide = 1;
-        const totalSlides = 15;
+        const totalSlides = 12;
 
         function showSlide(n) {
             const slides = document.querySelectorAll('.slide');
+
+            // Clamp to valid range
+            if (n < 1) n = 1;
+            if (n > totalSlides) n = totalSlides;
+
+            // Hide all slides
             slides.forEach(slide => slide.classList.remove('active'));
-            document.getElementById(`slide-${n}`).classList.add('active');
-            document.getElementById('current-slide').textContent = n;
 
-            document.getElementById('prev-btn').disabled = n === 1;
-            document.getElementById('next-btn').disabled = n === totalSlides;
+            // Show requested slide
+            slides[n - 1].classList.add('active');
+            currentSlide = n;
+
+            // Update counter
+            document.getElementById('currentSlide').textContent = n;
+
+            // Update button states
+            document.getElementById('prevBtn').disabled = (n <= 1);
+            document.getElementById('nextBtn').disabled = (n >= totalSlides);
+
+            // Update TOC highlighting
+            updateTOC(n);
         }
 
-        function changeSlide(direction) {
-            currentSlide += direction;
-            if (currentSlide < 1) currentSlide = 1;
-            if (currentSlide > totalSlides) currentSlide = totalSlides;
-            showSlide(currentSlide);
+        function nextSlide() {
+            if (currentSlide < totalSlides) showSlide(currentSlide + 1);
         }
 
+        function prevSlide() {
+            if (currentSlide > 1) showSlide(currentSlide - 1);
+        }
+
+        function goToSlide(n) {
+            showSlide(n);
+        }
+
+        function updateTOC(slideNum) {
+            const tocItems = document.querySelectorAll('.toc-item');
+            tocItems.forEach(item => item.classList.remove('current'));
+            if (tocItems[slideNum - 1]) {
+                tocItems[slideNum - 1].classList.add('current');
+            }
+        }
+
+        // Keyboard Navigation
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft') changeSlide(-1);
-            if (e.key === 'ArrowRight') changeSlide(1);
+            switch(e.key) {
+                case 'ArrowRight':
+                case ' ':
+                case 'Enter':
+                    e.preventDefault();
+                    nextSlide();
+                    break;
+                case 'ArrowLeft':
+                case 'Backspace':
+                    e.preventDefault();
+                    prevSlide();
+                    break;
+                case 'Home':
+                    e.preventDefault();
+                    showSlide(1);
+                    break;
+                case 'End':
+                    e.preventDefault();
+                    showSlide(totalSlides);
+                    break;
+                default:
+                    // Number keys for quick jump (1-9)
+                    if (e.key >= '1' && e.key <= '9') {
+                        const slideNum = parseInt(e.key);
+                        if (slideNum <= totalSlides) showSlide(slideNum);
+                    }
+            }
         });
 
-        showSlide(1);
+        // Touch support (swipe)
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            const diff = touchStartX - touchEndX;
+
+            if (Math.abs(diff) > swipeThreshold) {
+                if (diff > 0) {
+                    nextSlide();  // Swipe left = next
+                } else {
+                    prevSlide();  // Swipe right = previous
+                }
+            }
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            showSlide(1);
+        });
     </script>
 </body>
 </html>
